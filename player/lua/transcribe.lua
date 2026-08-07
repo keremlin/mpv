@@ -35,9 +35,10 @@ local o = {
     output_dir = "",
 }
 
--- Defined further down, but the option change callback below may run at any
--- time, so the name has to be a local that is already in scope here.
+-- Defined further down, but callbacks created before then have to see the
+-- same locals, so the names are declared up here.
 local update_menu
+local transcribe
 
 options.read_options(o, nil, function ()
     -- The menu shows the current settings, so it has to follow changes made
@@ -320,7 +321,8 @@ local function prompt_for_dependencies()
     mp.add_forced_key_binding("y", "transcribe-download-yes", function ()
         mp.remove_key_binding("transcribe-download-yes")
         mp.remove_key_binding("transcribe-download-no")
-        install_dependencies()
+        -- Carry on with what the user asked for in the first place.
+        install_dependencies(transcribe)
     end)
     mp.add_forced_key_binding("n", "transcribe-download-no", function ()
         mp.remove_key_binding("transcribe-download-yes")
@@ -553,7 +555,7 @@ local function transcribe_live(path, srt)
     transcribe_next_chunk()
 end
 
-local function transcribe()
+function transcribe()
     if job or live then
         mp.osd_message("Subtitle generation is already running")
         return
@@ -600,11 +602,14 @@ local function menu_command(rest)
     return "script-message-to " .. script_name .. " " .. rest
 end
 
+-- Returns nil rather than an empty table for the unset case: an empty Lua
+-- table is ambiguous between an array and a map, and menu-data wants an array.
 local function checked(condition)
-    return condition and {"checked"} or {}
+    return condition and {"checked"} or nil
 end
 
 function update_menu()
+    local running = job ~= nil or live ~= nil
     local menu = mp.get_property_native("menu-data", {})
     for i = #menu, 1, -1 do
         if menu[i].title == MENU_TITLE then
@@ -630,9 +635,9 @@ function update_menu()
         {type = "submenu", title = "Language", submenu = langs},
         {type = "separator"},
         {title = "Generate for this file now", cmd = menu_command("start"),
-         state = (job or live) and {"disabled"} or {}},
+         state = running and {"disabled"} or nil},
         {title = "Cancel", cmd = menu_command("cancel"),
-         state = (job or live) and {} or {"disabled"}},
+         state = not running and {"disabled"} or nil},
     }
     if #deps_missing() > 0 then
         items[#items + 1] = {type = "separator"}
