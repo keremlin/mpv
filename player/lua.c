@@ -98,6 +98,9 @@ static const char * const builtin_lua_scripts[][2] = {
     {"@transcribe.lua",
 #   include "player/lua/transcribe.lua.inc"
     },
+    {"@rss.lua",
+#   include "player/lua/rss.lua.inc"
+    },
     {0}
 };
 

@@ -584,6 +584,7 @@ static const m_option_t mp_opts[] = {
     {"load-commands", OPT_BOOL(lua_load_commands), .flags = UPDATE_BUILTIN_SCRIPTS},
     {"load-context-menu", OPT_BOOL(lua_load_context_menu), .flags = UPDATE_BUILTIN_SCRIPTS},
     {"load-transcribe", OPT_BOOL(lua_load_transcribe), .flags = UPDATE_BUILTIN_SCRIPTS},
+    {"load-rss", OPT_BOOL(lua_load_rss), .flags = UPDATE_BUILTIN_SCRIPTS},
 #endif
 
 // ------------------------- stream options --------------------
@@ -1032,6 +1033,7 @@ static const struct MPOpts mp_default_opts = {
     .lua_load_positioning = true,
     .lua_load_commands = true,
     .lua_load_transcribe = true,
+    .lua_load_rss = true,
 #ifndef _WIN32
     .lua_load_context_menu = true,
 #endif

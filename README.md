@@ -4,14 +4,16 @@
 
 
 > A fork of [mpv](https://github.com/mpv-player/mpv) that generates subtitles
-> from speech on your own machine, with no cloud service involved. See
-> [Offline subtitle generation](#offline-subtitle-generation). Everything else
-> is upstream mpv and is documented below.
+> from speech on your own machine, with no cloud service involved, and reads
+> podcast feeds. See [Offline subtitle generation](#offline-subtitle-generation)
+> and [Podcasts and RSS feeds](#podcasts-and-rss-feeds). Everything else is
+> upstream mpv and is documented below.
 
 
 * [External links](#external-links)
 * [Overview](#overview)
 * [Offline subtitle generation](#offline-subtitle-generation)
+* [Podcasts and RSS feeds](#podcasts-and-rss-feeds)
 * [System requirements](#system-requirements)
 * [Downloads](#downloads)
 * [Changelog](#changelog)
@@ -142,6 +144,101 @@ install whisper.cpp yourself, point `whisper_path=` at the binary and drop a
 A larger model gives noticeably better results for accented speech and noisy
 recordings, at the cost of speed. Change it with `model=` — `small`, `medium` or
 `large-v3` — and mpv will offer to download the new one the same way.
+
+## Podcasts and RSS feeds
+
+
+This fork also adds a built-in `rss` script that turns mpv into a podcast
+client. It keeps a list of feeds, reads the episodes each one publishes, and
+plays them — downloading the audio first if it is not already on disk. It talks
+to nothing until you add a feed.
+
+The full reference is in the
+[manual](https://mpv.io/manual/master/#rss) and in
+[DOCS/man/rss.rst](DOCS/man/rss.rst).
+
+### Adding a feed
+
+Everything lives in the **RSS** submenu of the context menu, which you open by
+right-clicking the video window.
+
+**RSS → Add feed…** asks for the address. A feed address is the `.xml` link a
+podcast publishes, for example:
+
+    https://proxyfeed.svmaudio.com/feeds/easygerman/feed.xml
+
+mpv fetches it immediately and only keeps the subscription if it turns out to be
+a readable feed, so a typo does not leave a broken entry behind. `feed://` and
+`itpc://` links, which podcast directories like to hand out, are accepted too.
+
+**RSS → Remove feed** lists your subscriptions and drops the one you pick.
+Episodes you already downloaded from it are **left alone** — deleting a pile of
+audio because of one menu click would be a surprising amount of destruction. If
+you want them gone, delete the feed's directory yourself.
+
+The subscription list is plain JSON in `rss/feeds.json` inside mpv's user
+directory, so you can edit it in a text editor while mpv is closed. That is the
+quickest way to import a longer list of feeds.
+
+### Browsing and playing episodes
+
+**RSS → Show episodes** opens a selector: first your feeds, then the episodes of
+whichever one you pick.
+
+    Select a feed:
+    > Easy German: Learn German with native speakers  (200 episodes)
+      The Daily  (200 episodes)
+
+Episodes are sorted by publication date, **newest first**, and the ones already
+on disk are marked:
+
+    Easy German:
+      [ Back to feeds ]
+    > 2026-08-08  685: Ich geh Crashout  (28:14)
+      2026-08-04  684: Als Praktikantin im Deutschen Bundestag  [downloaded]
+
+Typing filters the list. Pick an episode and it plays. If its audio has not been
+downloaded yet, mpv fetches it first and shows the progress, then starts
+playback. Downloads land in a `.part` file and are only renamed into place once
+they finish, so an interrupted download is never mistaken for a playable
+episode.
+
+Episodes are stored in `rss/media/<feed>/` inside mpv's user directory, one
+directory per feed, named `<date> <episode title>.mp3`. Point `download_dir=` at
+somewhere else if you prefer. Nothing is ever deleted automatically.
+
+Turning **Download before playing** off streams episodes straight from their URL
+instead. That saves disk space and starts sooner, but you need a connection for
+the whole episode and seeking is unreliable on servers that do not support range
+requests.
+
+Since episodes are ordinary audio files once downloaded, subtitle generation
+works on them: switch it on and the transcript is written next to the episode.
+
+### Enabling and disabling
+
+**RSS → Update feeds on startup** is the on/off switch, and it is **off** by
+default. With it on, mpv refreshes every feed about a second after it starts —
+not during startup itself, so the first file still begins playing without
+waiting for the network. This is the `enabled=` option in `rss.conf`.
+
+That switch deliberately governs *only* the automatic refresh. Browsing, playing
+and **RSS → Update feeds now** keep working with it off, so everything you have
+already fetched stays usable offline.
+
+An update preserves what mpv already knows about each episode, above all whether
+you have downloaded it. Only the newest `max_episodes=` entries (200 by default)
+of a feed are remembered — except that downloaded episodes are kept however old
+they are, so a podcast trimming its own backlog cannot hide them from you.
+
+Feeds are fetched with `curl`, which ships with Windows 10 and later and with
+most Unix systems. If it is not on your `PATH`, set `curl_path=`.
+
+RSS 2.0 with `<enclosure>` elements — what podcasts actually use — is the target,
+and Atom `<link rel="enclosure">` and Media RSS `<media:content>` are read as
+well. Items with no media attached are skipped, since there is nothing to play.
+
+`--load-rss=no` disables the script altogether.
 
 ## System requirements
 

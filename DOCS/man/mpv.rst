@@ -1587,6 +1587,8 @@ works like in older mpv releases:
 
 .. include:: transcribe.rst
 
+.. include:: rss.rst
+
 .. include:: lua.rst
 
 .. include:: javascript.rst
