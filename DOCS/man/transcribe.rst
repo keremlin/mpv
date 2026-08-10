@@ -21,13 +21,22 @@ subtitles instead of generating them a second time. A file that already has an
 Requirements
 ------------
 
-The whisper.cpp binary and the ggml language model are not part of mpv. When
-subtitle generation is switched on and either is missing, the script says so and
-offers to download both into ``whisper`` in mpv's user directory, which takes
-roughly 200 MB for the default model. This can also be triggered from the
-context menu. The automatic download is only implemented for Windows;
-on other platforms install whisper.cpp yourself and point ``whisper_path`` at
-it.
+The whisper.cpp binary and the ggml language model are not part of mpv, and
+nothing is downloaded until it is asked for. When subtitle generation is
+switched on and either is missing, the script says which one and offers to
+fetch it; this can also be triggered from the context menu.
+
+Both land in ``whisper`` inside mpv's user directory, which is
+``%APPDATA%\mpv\whisper\`` on Windows, ``portable_config\whisper\`` next to
+``mpv.exe`` for a portable install, and ``~/.config/mpv/whisper/`` elsewhere.
+The model comes from ``https://huggingface.co/ggerganov/whisper.cpp`` and is
+about 141 MB for the default ``base``; the binary comes from the whisper.cpp
+release archive and unpacks to roughly 60 MB. ``whisper_dir`` moves both
+somewhere else.
+
+The automatic download is only implemented for Windows. On other platforms
+install whisper.cpp yourself, point ``whisper_path`` at the binary, and place a
+``ggml-*.bin`` model in ``whisper_dir``.
 
 whisper.cpp reads ``wav``, ``mp3`` and ``flac`` by itself. Any other format,
 which includes every video container, is converted first by invoking mpv again,
@@ -63,8 +72,14 @@ This script can be customized through a config file
 
 ``language=<code>``
     Language to transcribe as, for example ``de`` or ``en`` (default: ``de``).
-    ``auto`` lets whisper detect the language, which is slower and less
-    reliable than naming it.
+
+    Naming the language is worth doing. With ``auto``, whisper infers it from
+    the first seconds of audio, which costs extra time and goes wrong on short
+    files, on music, and on recordings that begin with silence or a greeting in
+    another language; everything after a wrong guess is then transcribed as the
+    wrong language. Use ``auto`` only when the language is genuinely not known
+    in advance. Note that models whose name ends in ``.en`` understand English
+    only, whatever this is set to.
 
 ``model=<name>``
     The ggml model to use, without the ``ggml-`` prefix and ``.bin`` suffix

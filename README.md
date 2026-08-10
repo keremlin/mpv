@@ -3,8 +3,15 @@
 # mpv
 
 
+> A fork of [mpv](https://github.com/mpv-player/mpv) that generates subtitles
+> from speech on your own machine, with no cloud service involved. See
+> [Offline subtitle generation](#offline-subtitle-generation). Everything else
+> is upstream mpv and is documented below.
+
+
 * [External links](#external-links)
 * [Overview](#overview)
+* [Offline subtitle generation](#offline-subtitle-generation)
 * [System requirements](#system-requirements)
 * [Downloads](#downloads)
 * [Changelog](#changelog)
@@ -34,6 +41,107 @@ a wide variety of media file formats, audio and video codecs, and subtitle types
 There is a [FAQ][FAQ].
 
 Releases can be found on the [release list][releases].
+
+## Offline subtitle generation
+
+
+This fork adds a built-in `transcribe` script that generates subtitles for
+whatever is playing by running [whisper.cpp](https://github.com/ggml-org/whisper.cpp)
+on your own machine. The audio never leaves the computer: there is no account,
+no API key and no network traffic beyond the one-time model download described
+below.
+
+The full option reference is in the
+[manual](https://mpv.io/manual/master/#transcribe) and in
+[DOCS/man/transcribe.rst](DOCS/man/transcribe.rst).
+
+### Turning it on and off
+
+Subtitle generation is **off by default**. Enable it either way:
+
+* Right-click the video window and pick **Subtitle generation → Generate
+  subtitles automatically**, or
+* bind a key in `input.conf`:
+
+      Ctrl+t       script-binding transcribe/toggle
+      Ctrl+g       script-binding transcribe/transcribe
+      Ctrl+Shift+g script-binding transcribe/cancel
+
+Whichever you use, the change is written to `script-opts/transcribe.conf` in
+mpv's user directory, so it survives a restart. Setting `enabled=no` there, or
+passing `--load-transcribe=no`, turns the feature off again; the latter also
+stops the script from loading at all.
+
+### How automatic transcription works
+
+When it is enabled, every file you open that has **no subtitle track of its
+own** is transcribed:
+
+1. If a subtitle file for it already exists, that one is loaded and nothing is
+   generated. Work is never repeated.
+2. Otherwise the audio is handed to whisper.cpp. `wav`, `mp3` and `flac` are
+   read directly; everything else, including every video container, is first
+   converted to 16 kHz mono by invoking mpv again.
+3. The result is written **next to the media file** as `<name>.srt` and loaded
+   as the active subtitle track.
+
+Because `<name>.srt` is exactly the name mpv looks for on its own, playing the
+file again simply loads it. An `.srt` that is already there is never
+overwritten.
+
+Files that already carry subtitles are skipped, so enabling this does not
+interfere with normal playback of media that is already subtitled.
+
+By default the subtitles appear when the whole file has been processed. Set
+`live=yes` (**Subtitle generation → Show subtitles while transcribing**) to
+transcribe in chunks instead, extending the subtitle file as playback goes on,
+so the first subtitles show up after a few seconds rather than at the end.
+Whether that keeps up with playback depends on the model and the machine; if it
+falls behind, the subtitles lag, not the video.
+
+### Choosing the language
+
+The language is set under **Subtitle generation → Language**, or with
+`language=` in `transcribe.conf`. It defaults to **German** (`de`).
+
+It is worth setting this deliberately rather than leaving it on `auto`. Whisper
+detects the language from the first few seconds of audio, which costs extra time
+and gets it wrong on short files, on music, and on recordings that open with
+silence or a greeting in another language. Naming the language skips detection
+entirely and improves accuracy. Use `auto` only when you genuinely do not know
+what you are about to play.
+
+Note that models whose name ends in `.en` understand English only; the default
+`base` model is multilingual.
+
+### The speech recognition files
+
+whisper.cpp and its language model are **not shipped with mpv** and are not
+downloaded until you ask for them. The first time you enable subtitle
+generation, mpv reports what is missing and offers to fetch it:
+
+> Subtitle generation needs the speech recognition program and the language
+> model (about 200 MB). Press y to download, n to skip.
+
+Pressing `y` downloads, into a `whisper` directory inside mpv's user directory:
+
+| File | Source | Size |
+| --- | --- | --- |
+| `ggml-<model>.bin` | [huggingface.co/ggerganov/whisper.cpp](https://huggingface.co/ggerganov/whisper.cpp) | ~141 MB for `base` |
+| `whisper-cli` and its libraries | [whisper.cpp releases](https://github.com/ggml-org/whisper.cpp/releases) | ~60 MB unpacked |
+
+On Windows that directory is `%APPDATA%\mpv\whisper\`, or
+`portable_config\whisper\` next to `mpv.exe` for a portable install. On Linux
+and macOS it is `~/.config/mpv/whisper/`. Use `whisper_dir=` to put them
+somewhere else, such as a shared drive.
+
+The automatic download is implemented for Windows only. On other platforms,
+install whisper.cpp yourself, point `whisper_path=` at the binary and drop a
+`ggml-*.bin` model into `whisper_dir`.
+
+A larger model gives noticeably better results for accented speech and noisy
+recordings, at the cost of speed. Change it with `model=` — `small`, `medium` or
+`large-v3` — and mpv will offer to download the new one the same way.
 
 ## System requirements
 
