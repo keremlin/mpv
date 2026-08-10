@@ -25,7 +25,8 @@ local o = {
     -- Threads whisper may use. 0 lets whisper decide.
     threads = 0,
     -- mpv binary, used to decode formats whisper cannot read by itself.
-    mpv_path = "mpv",
+    -- Empty means "next to the config directory, else whatever is in PATH".
+    mpv_path = "",
     -- Transcribe in chunks so subtitles appear while the file plays, instead
     -- of waiting for the whole file to be transcribed first.
     live = false,
@@ -104,6 +105,20 @@ end
 
 local function model_file()
     return utils.join_path(whisper_dir(), "ggml-" .. o.model .. ".bin")
+end
+
+-- mpv does not tell scripts where its own binary is. A portable install keeps
+-- the config directory next to it, which covers the common Windows case;
+-- otherwise fall back to PATH and let the user correct it.
+local function mpv_bin()
+    if o.mpv_path ~= "" then
+        return o.mpv_path
+    end
+    local portable = config_path(windows and "../mpv.exe" or "../mpv")
+    if exists(portable) then
+        return portable
+    end
+    return windows and "mpv.exe" or "mpv"
 end
 
 local function mkdir(path)
@@ -421,7 +436,7 @@ local function whisper_args(input, prefix)
 end
 
 local function extract_args(path, wav, start, length)
-    local args = {o.mpv_path, path, "--no-config", "--no-terminal", "--vid=no",
+    local args = {mpv_bin(), path, "--no-config", "--no-terminal", "--vid=no",
                   "--sid=no", "--audio-channels=mono",
                   "--audio-samplerate=16000", "--of=wav", "--oac=pcm_s16le",
                   "--o=" .. wav}

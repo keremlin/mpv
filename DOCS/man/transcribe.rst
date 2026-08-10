@@ -95,7 +95,10 @@ This script can be customized through a config file
     Number of threads whisper may use (default: 0, which lets whisper decide).
 
 ``mpv_path=<path>``
-    The mpv binary used to convert audio whisper cannot read (default: ``mpv``).
+    The mpv binary used to convert audio whisper cannot read (default: empty).
+    When empty, the binary next to the config directory is used if there is one,
+    which covers a portable Windows install; otherwise mpv is looked up in
+    ``PATH``.
 
 ``output_dir=<path>``
     Write the subtitles here instead of next to the media file (default:
