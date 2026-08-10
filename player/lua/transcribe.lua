@@ -608,6 +608,15 @@ local function checked(condition)
     return condition and {"checked"} or nil
 end
 
+local function has_our_submenu(menu)
+    for _, item in ipairs(menu or {}) do
+        if item.title == MENU_TITLE then
+            return true
+        end
+    end
+    return false
+end
+
 function update_menu()
     local running = job ~= nil or live ~= nil
     local menu = mp.get_property_native("menu-data", {})
@@ -706,4 +715,12 @@ mp.register_event("file-loaded", function ()
     transcribe()
 end)
 
-update_menu()
+-- select.lua rebuilds menu-data from scratch once the window is created, which
+-- drops whatever else was in there, so put our submenu back whenever it goes
+-- missing. This also does the initial build, because observing a property
+-- reports its current value straight away.
+mp.observe_property("menu-data", "native", function (_, menu)
+    if not has_our_submenu(menu) then
+        update_menu()
+    end
+end)
