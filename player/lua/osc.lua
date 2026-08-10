@@ -1,6 +1,7 @@
 local assdraw = require 'mp.assdraw'
 local msg = require 'mp.msg'
 local opt = require 'mp.options'
+local utils = require 'mp.utils'
 
 --
 -- Parameters
@@ -375,6 +376,40 @@ local logo_lines = {
     -- Triangle
     "{\\c&H691F69&\\p6}m 762 1113 l 762 708 b 881 776 1000 843 1119 911 1000 978 881 1046 762 1113{\\p0}",
 }
+
+-- A bitmap may be used instead of the drawn logo above. It has to be raw
+-- premultiplied BGRA, named "mpv-logo.<width>x<height>.bgra", and placed in the
+-- config directory; TOOLS/png2bgra.py converts an image into that. Unlike the
+-- drawn logo this cannot be recoloured or scaled without loss, so it is only
+-- used when such a file is actually there.
+local LOGO_OVERLAY_ID = 63
+local logo_image = nil
+local logo_image_searched = false
+local logo_image_shown = false
+
+local function find_logo_image()
+    if not logo_image_searched then
+        logo_image_searched = true
+        local dir = mp.command_native({"expand-path", "~~/"})
+        for _, file in ipairs(utils.readdir(dir, "files") or {}) do
+            local w, h = file:match("^mpv%-logo%.(%d+)x(%d+)%.bgra$")
+            if w then
+                logo_image = {path = utils.join_path(dir, file),
+                              w = tonumber(w), h = tonumber(h)}
+                msg.verbose("using logo bitmap " .. logo_image.path)
+                break
+            end
+        end
+    end
+    return logo_image
+end
+
+local function hide_logo_image()
+    if logo_image_shown then
+        mp.commandv("overlay-remove", LOGO_OVERLAY_ID)
+        logo_image_shown = false
+    end
+end
 
 local santa_hat_lines = {
     -- Pompoms
@@ -3085,28 +3120,46 @@ local function render_logo()
     local display_h = 360
     local display_w = display_h * state.osd_dimensions.aspect
     -- logo is rendered at 2^(6-1) = 32 times resolution with size 1800x1800
-    local icon_x, icon_y = (display_w - 1800 / 32) / 2, (display_h - 1800 / 32) / 2
+    local logo_h = 1800 / 32
+    local icon_x, icon_y = (display_w - logo_h) / 2, (display_h - logo_h) / 2
     local line_prefix = ("{\\rDefault\\an7\\1a&H00&\\bord0\\shad0\\pos(%f,%f)}"):format(icon_x,
                                                                                         icon_y)
 
     local ass = assdraw.ass_new()
-    -- mpv logo
-    for _, line in ipairs(logo_lines) do
-        ass:new_event()
-        ass:append(line_prefix .. line)
-    end
-
-    -- Santa hat
-    if is_december and not user_opts.greenandgrumpy then
-        for _, line in ipairs(santa_hat_lines) do
+    local image = find_logo_image()
+    if image and state.osd_dimensions.w > 0 and state.osd_dimensions.h > 0 then
+        -- Overlays are placed in real pixels rather than the virtual ASS
+        -- coordinates the drawn logo uses, so this is sized off the window.
+        local ow, oh = state.osd_dimensions.w, state.osd_dimensions.h
+        local dh = math.floor(oh * 0.36)
+        local dw = math.floor(dh * image.w / image.h)
+        mp.commandv("overlay-add", LOGO_OVERLAY_ID,
+                    math.floor((ow - dw) / 2), math.floor((oh - dh) / 2),
+                    image.path, 0, "bgra", image.w, image.h, image.w * 4, dw, dh)
+        logo_image_shown = true
+        -- Keep the caption clear of the bitmap, which is taller than the
+        -- drawn logo it replaces.
+        logo_h = display_h * 0.36
+        icon_y = (display_h - logo_h) / 2
+    else
+        -- mpv logo
+        for _, line in ipairs(logo_lines) do
             ass:new_event()
             ass:append(line_prefix .. line)
+        end
+
+        -- Santa hat
+        if is_december and not user_opts.greenandgrumpy then
+            for _, line in ipairs(santa_hat_lines) do
+                ass:new_event()
+                ass:append(line_prefix .. line)
+            end
         end
     end
 
     if state.idle_active then
         ass:new_event()
-        ass:pos(display_w / 2, icon_y + 65)
+        ass:pos(display_w / 2, icon_y + logo_h + 8)
         ass:an(8)
         ass:append("Drop files or URLs to play here.")
     end
@@ -3127,6 +3180,8 @@ tick = function()
         msg.trace("idle message")
         if user_opts.idlescreen then
             render_logo()
+        else
+            hide_logo_image()
         end
 
         -- Hide main OSC but keep window controls functional
@@ -3150,6 +3205,7 @@ tick = function()
             render_logo()
         else
             render_wipe(state.logo_osd)
+            hide_logo_image()
         end
         -- render the OSC
         render()
@@ -3157,6 +3213,7 @@ tick = function()
         -- Flush OSD
         render_wipe(state.osd)
         render_wipe(state.logo_osd)
+        hide_logo_image()
     end
 
     state.tick_last_time = mp.get_time()
