@@ -93,6 +93,11 @@ Script bindings
 ``add``
     Ask for a feed address and subscribe to it.
 
+    Subscribing to a known feed without being asked is also possible by sending
+    the address along, which is what a binding or the IPC interface would do::
+
+        script-message-to rss add https://example.com/feed.xml
+
 ``toggle``
     Switch updating on startup on or off.
 

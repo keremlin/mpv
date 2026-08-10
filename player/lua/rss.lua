@@ -952,7 +952,15 @@ mp.add_key_binding(nil, "toggle", toggle)
 
 mp.register_script_message("browse", browse_feeds)
 mp.register_script_message("update", function () update_all(false) end)
-mp.register_script_message("add", prompt_for_feed)
+-- Passing the address straight in is what input.conf bindings and the IPC
+-- interface want; without one, ask for it.
+mp.register_script_message("add", function (url)
+    if url and url ~= "" then
+        add_feed(url)
+    else
+        prompt_for_feed()
+    end
+end)
 mp.register_script_message("remove", remove_feed)
 mp.register_script_message("toggle", toggle)
 mp.register_script_message("toggle-download", function ()
