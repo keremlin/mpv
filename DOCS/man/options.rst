@@ -1117,6 +1117,11 @@ Program Behavior
     (default: yes). The script itself does nothing until subtitle generation is
     switched on in its own settings, see `TRANSCRIBE`_.
 
+``--load-rss=<yes|no>``
+    Enable the builtin script that reads RSS podcast feeds (default: yes). The
+    script itself does nothing until a feed is added from its context menu, see
+    `RSS`_.
+
 ``--player-operation-mode=<cplayer|pseudo-gui>``
     For enabling "pseudo GUI mode", which means that the defaults for some
     options are changed. This option should not normally be used directly, but

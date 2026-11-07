@@ -373,6 +373,10 @@ fi
 
 CFLAGS+=" -I'$prefix_dir/include'"
 LDFLAGS+=" -L'$prefix_dir/lib'"
+# FFmpeg is cloned from master, which deprecates fields (e.g.
+# AVFormatContext.streams/nb_streams) before mpv migrates off them. Keep
+# --werror for everything else, but don't let deprecations break the build.
+CFLAGS+=" -Wno-error=deprecated-declarations"
 export CFLAGS LDFLAGS
 build=mingw_build
 rm -rf $build

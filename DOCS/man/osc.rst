@@ -260,6 +260,13 @@ Configurable Options
 
     Show the mpv logo and message when idle
 
+    The logo is normally drawn as flat shapes, which cannot express artwork made
+    of gradients or glow. To use a bitmap instead, place a file named
+    ``mpv-logo.<width>x<height>.bgra`` in mpv's config directory, holding raw
+    premultiplied BGRA pixels; ``TOOLS/png2bgra.py`` converts an image into
+    that. It is scaled to 36% of the window height and the drawn logo is then
+    not used at all. Without such a file nothing changes.
+
 ``audioonlyscreen``
     Default: no
 

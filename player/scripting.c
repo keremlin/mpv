@@ -272,6 +272,7 @@ void mp_load_builtin_scripts(struct MPContext *mpctx)
     load_builtin_script(mpctx, 7, mpctx->opts->lua_load_commands, "@commands.lua");
     load_builtin_script(mpctx, 8, mpctx->opts->lua_load_context_menu, "@context_menu.lua");
     load_builtin_script(mpctx, 9, mpctx->opts->lua_load_transcribe, "@transcribe.lua");
+    load_builtin_script(mpctx, 10, mpctx->opts->lua_load_rss, "@rss.lua");
 }
 
 bool mp_load_scripts(struct MPContext *mpctx)
