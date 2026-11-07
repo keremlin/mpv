@@ -124,6 +124,14 @@ These each cost a full build cycle the first time.
    A partial install from a failed attempt is deleted before each run, because
    meson would otherwise half-detect it.
 
+4. **FFmpeg master deprecations.** FFmpeg is cloned from master, and mpv builds
+   with `--werror`, so a field FFmpeg newly deprecates stops the build at the
+   very last step, e.g. `demux_lavf.c: 'nb_streams' is deprecated
+   [-Werror=deprecated-declarations]`. `ci/build-mingw64.sh` adds
+   `-Wno-error=deprecated-declarations` to the mpv step's `CFLAGS`: the
+   warnings still print, every other warning stays fatal. Dependencies are
+   unaffected — they are already cached by then.
+
 ### 2.5 Output
 
 `/out` is a self-contained portable folder: `mpv.exe` (~18.6 MB), `mpv.com`,
